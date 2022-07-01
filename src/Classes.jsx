@@ -91,11 +91,10 @@ class Edge{
     this.weight = weight
     this.isDirected = isDirected
     this.arrow = null
-    this.points = []
+    this.tooltip = null
+    this.points = this.calculatePoints(this.from,this.to)
    }
-  draw(stage, layer, color="#36AE7C", arrowWidth=2){
-      //calculate where does the edge start and end relative to the position of vertices
-  	  if(this.points.length==0){this.points = this.calculatePoints(this.from,this.to)}
+  draw(stage, layer, color="#36AE7C"){
       this.arrow = new Konva.Arrow({
               points: this.points, // [x1, y1, x2, y2].
               pointerLength: 10,
@@ -103,13 +102,50 @@ class Edge{
               fill: color,
               stroke: color,
               strokeWidth: 4,
+              pointerAtEnding:this.isDirected
               })
+      if(this.from===this.to){
+        const p = this.arrow.points()
+        const c = {x1:p[0],y1:p[1]-20,x2:(p[0]+p[2])/2,y2:(p[1]-40+p[3]-40)/2,x3:p[2],y3:p[3]-20}
+        this.arrow.points([c.x1,c.y1,c.x2,c.y2,c.x3,c.y3])
+        this.arrow.tension(1)
+        this.arrow.pointerAtEnding(true)
+      }
       layer.add(this.arrow);
-
-      // add the layer to the stage
+      if(this.weight!==null){
+        const p = this.arrow.points()
+        this.tooltip = new Konva.Label({
+        x: p.length==4 ? (p[0]+p[2])/2 : p[2],
+        y: p.length==4 ? (p[1]+p[3])/2 : p[3],
+        opacity: 0.75,
+        });
+        this.tooltip.add(
+        new Konva.Tag({
+          fill: 'black',
+          pointerDirection: 'down',
+          pointerWidth: 10,
+          pointerHeight: 10,
+          lineJoin: 'round',
+          shadowColor: 'black',
+          shadowBlur: 10,
+          shadowOffsetX: 10,
+          shadowOffsetY: 10,
+          shadowOpacity: 0.5,
+        })
+      );
+        const text = new Konva.Text({
+            text: " "+this.weight.toString()+" ",
+            fontSize: 18,
+            fontFamily: 'Arial',
+            fill: 'white',
+        })
+        this.tooltip.add(text)
+        layer.add(this.tooltip)
+      }
       stage.add(layer);
       return this.points
     }
+  //calculate where does an edge starts and ends relative to the position of vertices
   calculatePoints(from,to){
     let fromx, tox, fromy, toy
     if(Math.abs(from.x-to.x)<Math.abs(from.y-to.y)){
@@ -141,6 +177,9 @@ class Edge{
   destroy(){
     if(this.arrow!=null){
         this.arrow.remove()}
+    if(this.tooltip!=null){
+        this.tooltip.remove()
+    }
   }
 }
 export {Vertex, Edge}

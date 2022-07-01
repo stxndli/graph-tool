@@ -1,18 +1,17 @@
-import './App.css';
 import Konva from 'konva'
 import React, {useState,useEffect} from 'react'
 import {Vertex,Edge} from './Classes'
-import {BFS,DFS,Dijkstra} from './Algorithms'
+import {BFS,DFS,Dijkstra,isEulerian} from './Algorithms'
 import drawGrid from './drawgrid'
 import {Actions,help} from './Actions'
-import {Info} from './Icons'
-import {Visualize} from './Visualize'
-import {Modal, Button} from "react-bootstrap"
+import {Info, Gear} from './Icons'
+import {Visualize,VisualizeDijkstra} from './Visualize'
+import EdgeModal from './Modal'
 function App() {
     const [stage, setStage] = useState()
     const [layer, setLayer] = useState()
     const [height,setHeight] = useState(500)
-    const [width,setWidth] = useState(document.body.clientWidth)
+    const [width,setWidth] = useState(document.body.clientWidth-100)
     useEffect(() => {
         document.getElementById("vertex").defaultChecked = true
         const s = new Konva.Stage({
@@ -29,11 +28,10 @@ function App() {
     const [vertices, setVertices] = useState([])
     const [edges, setEdges] = useState([])
     const [weight, setWeight] = useState(null)
-    const [isDirected, setIsDirected] = useState(true)
     const [graph, setGraph] = useState({})
     const [drag, setDrag] = useState(false)
     const [info, setInfo] = useState(help["vertex"])
-
+    const [showModal, setShowModal] = useState(false)
     useEffect(() => {
         //update the graph
         let g = {
@@ -51,7 +49,6 @@ function App() {
             })
         })
         setGraph(g)
-        console.log(g)
     }, [vertices, edges])
     useEffect(() => {
         if (drag) {
@@ -72,7 +69,7 @@ function App() {
     const [op, setOp] = useState("vertex")
 
     // coordinates to the start of an edge [fromX, fromY]
-    const [edge, setEdge] = useState([])
+    const [edge, setEdge] = useState({x1:null,y1:null,x2:null,y2:null})
 
     // coordinates to a selected vertex
     const [selected, setSelected] = useState(new Vertex(-1, -1, -1))
@@ -85,7 +82,21 @@ function App() {
             const e = edges.filter(edge => edge.from.index == v.index || edge.to.index == v.index)
             e.forEach((edge) => {
                 if (edge.arrow !== null) {
-                    if (edge.from.index == v.index) {
+                    if(edge.from.index == v.index && edge.to.index == v.index){
+                      let from = {
+                          x: group.x(),
+                          y: group.y()
+                      }
+                      let to = {
+                          x: group.x(),
+                          y: group.y()
+                      }
+                      const newPoints = edge.calculatePoints(from, to)
+                      edge.points = newPoints
+                      edge.destroy()
+                      edge.draw(stage, layer)
+                    }
+                    else if (edge.from.index == v.index) {
                         let from = {
                             x: group.x(),
                             y: group.y()
@@ -125,24 +136,18 @@ function App() {
 
         })
     }
-    const drawLine = (x, y) => {
-        if (edgeStart == false) {
-            setEdge([x, y])
-            setEdgeStart(true)
-        } else {
-            setEdgeStart(false)
-            //update list of edges
-            let from, to
-            from = vertices.find(vertex => vertex.x === edge[0] && vertex.y === edge[1])
-            to = vertices.find(vertex => vertex.x === x && vertex.y === y)
-            const e = new Edge(from, to, weight, isDirected)
-            setEdges((prevEdges) => [...prevEdges, e])
-            if (!isDirected) {
-                const n = new Edge(to, from, weight, isDirected)
-                setEdges((prevEdges) => [...prevEdges, n])
-            }
-            e.draw(stage, layer)
+    const drawLine = (coords,isDirected) => {
+        //update list of edges
+        let from, to
+        from = vertices.find(vertex => vertex.x === coords.x1 && vertex.y === coords.y1)
+        to = vertices.find(vertex => vertex.x === coords.x2 && vertex.y === coords.y2)
+        const e = new Edge(from, to, weight, isDirected)
+        setEdges((prevEdges) => [...prevEdges, e])
+        if (!isDirected) {
+            const n = new Edge(to, from, weight, isDirected)
+            setEdges((prevEdges) => [...prevEdges, n])
         }
+        e.draw(stage, layer)
     }
     const handleDelete = (vertex) => {
         const e = edges.filter(element => element.from.index == vertex.index || element.to.index == vertex.index) // edges to delete
@@ -171,7 +176,7 @@ function App() {
                 selected.unselect()
                 if ((op === "edge" || op === "Dijkstra") && vertex.index != selected.index && selected.index === -1) {
                     setSelected(vertex)
-                    vertex.select("#2155CD") //blue
+                    vertex.select("#2155CD")
                 } else {
                     setEdgeStart(false)
                     vertex.unselect()
@@ -181,13 +186,28 @@ function App() {
                 if (op === "delete") {
                     handleDelete(vertex)
                 } else if (op === "edge") {
-                    drawLine(vertex.x, vertex.y)
+                    if(!edgeStart){
+                        let e = edge
+                        edge.x1 = vertex.x
+                        edge.y1 = vertex.y
+                        setEdge(e)
+                        setEdgeStart(true)
+                    }
+                    else{
+                        let e = edge
+                        edge.x2 = vertex.x
+                        edge.y2 = vertex.y
+                        setEdge(e)
+                        setEdgeStart(false)
+                        setShowModal(true)
+                    }
+                    //drawLine(vertex.x, vertex.y)
                 } else if (op === "BFS") {
                     const res = BFS(graph, vertex.index)
-                    Visualize(vertices,res,stage,layer)
+                    Visualize(vertices,res)
                 } else if (op === "DFS") {
                     const res = DFS(graph, vertex.index)
-                    Visualize(vertices,res,stage,layer)
+                    Visualize(vertices,res)
                 }
                 else if (op === "Dijkstra") {
                     setEdgeStart(false)
@@ -196,11 +216,13 @@ function App() {
                       setDijkstraStart(true)
                     }
                     else{
+                      setDijkstraStart(false)
                       const res = Dijkstra(graph, selected.index, vertex.index)
-                      Visualize(vertices,res.result,stage,layer,res.dist)
+                      VisualizeDijkstra(vertices,res.result,res.dist)
                       if(res.spt[vertex.index]===null){
                         setInfo("No paths found from "+selected.index.toString()+" to "+vertex.index.toString())
                       }
+                      
                       else{
                         let i = vertex.index
                         let path = [vertex.index]
@@ -208,7 +230,7 @@ function App() {
                           path.unshift(res.spt[i])
                           i = res.spt[i]
                         }
-                        setInfo("Optimal path to "+vertex.index.toString()+" : "+path.toString())
+                        setInfo("Shorest path found : "+path.toString().replaceAll(","," => "))
                       }
                     }
                 }
@@ -226,35 +248,50 @@ function App() {
         }
     }
     const handleOps = (e) => {
+        setDrag(false)
         if (e.target.value === "drag") {
             setDrag(true)
-        } else{
-            setDrag(false)
         }
-        if (e.target.value === "delete"){
+        else if (e.target.value === "delete"){
           edges.forEach((edge) => {
-            edge.arrow.on('click',()=>{edge.destroy();setGraph({});setEdges(edges.filter(e=>e!=edge))})
+            if(edge.arrow!==null){
+                edge.arrow.on('click',()=>{edge.destroy();setGraph({});setEdges(edges.filter(e=>e!=edge))})
+            }
           });
-
         }
         if(e.target.value !== "Dijkstra"){
           vertices.forEach((v) => {
             v.destroyInfo()
           });
-
         }
         setOp(e.target.value)
-        if(help[e.target.value] != undefined) setInfo(help[e.target.value]);
+        if(help[e.target.value] !== undefined) setInfo(help[e.target.value]);
+        else if(e.target.value==="Eulerian"){
+            const res = isEulerian(graph)
+            setInfo(res)
+        }
         else setInfo("")
-
+    }
+    const handleWeight = (e)=>{
+      const v=e.target.value
+      if (!isNaN(v) && (function(x) { return (x | 0) === x; })(parseFloat(v))){
+      setWeight(parseInt(v))
+      }
+      else{
+        setWeight(null)
+      }
     }
     return (
-        <div>
-    <br/><br/>
+    <div>
     <Actions onChange={handleOps}/>
-    <br/><br/>
-    <p style={{visibility:info===""?'hidden':'visible'}}><Info/> {info}</p>
-    <div id="container" style={{height:height,width:width}} onClick={op!=="drag" ? handleClick : null}/>
+    <div className="main">
+    <h1>Graph Tool</h1>
+    <div className="row">
+    <EdgeModal show={showModal} hide={()=>setShowModal(false)} directed={()=>{setShowModal(false);drawLine(edge,true);setWeight(null)}} undirected={()=>{setShowModal(false);drawLine(edge,false);setWeight(null)}} handleWeight={handleWeight}/>
+    </div>
+    <p className="alert alert-success" style={{visibility:info===""?'hidden':'visible'}} id="info"><Info/> {info}</p>
+    <div id="container" style={{height:height,width:width,backgroundColor:"white"}} onClick={op!=="drag" ? handleClick : null}/>
+    </div>
     </div>
     );
 }

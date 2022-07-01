@@ -60,14 +60,15 @@ const Dijkstra = (graph, start, end)=>{
 		nodes.push(v)
 	}
 	let distState = []
-	distState.push({...dist})
 	dist[start] = 0
+	distState.push({...dist})
+	result.push(start)
 	while(nodes.length>0){
 		const index = minDist(nodes)
 		const min = nodes[index]
-		result.push(min)
 		nodes.splice(index,1)
 		graph[min].forEach((neighbour)=>{
+			result.push(neighbour.index)
 			let weight = 1
 			if(neighbour.weight!==null){
 				weight = neighbour.weight
@@ -76,12 +77,47 @@ const Dijkstra = (graph, start, end)=>{
 			if(alt<dist[neighbour.index]){
 				dist[neighbour.index] = alt
 				optimalPath[neighbour.index] = min
-				const d = {...dist}
-				distState.push(d)
 			}
+			const d = {...dist}
+			distState.push(d)
 		})
 	}
 	return {result:result,dist:distState,spt:optimalPath}
 }
+const isConnected = (graph)=>{
+	let V = Object.keys(graph).length
+	let i
+	let visited = []
+	for(i=0;i<V;i++){
+		if(graph[Object.keys(graph)[i]].length!==0){
+			break
+		}
+	}
+	if(i===V){
+		return true
+	}
+	DFSUtil(graph,parseInt(Object.keys(graph)[i]),visited)
+	console.log(visited)
+	for(let i=0;i<V;i++){
+		if(!visited.includes(parseInt(Object.keys(graph)[i])) && graph[Object.keys(graph)[i]].length!==0){
+			return false
+		}
+	}
+	return true
+}
 
-export {BFS, DFS, Dijkstra}
+const isEulerian = (graph) => {
+	if (isConnected(graph) === false)
+            return 0;
+			
+	let odd = 0;
+	for (let i = 0; i < Object.keys(graph).length; i++)
+		if (graph[Object.keys(graph)[i]].length%2!=0)
+			odd++;
+
+	if (odd > 2)
+		return "Graph is not Eulerian";
+
+	return (odd==2)? "Graph is semi Eulerian" : "Graph is Eulerian";
+}
+export {BFS, DFS, Dijkstra, isEulerian}
