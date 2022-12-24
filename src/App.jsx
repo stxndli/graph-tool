@@ -1,11 +1,11 @@
 import Konva from 'konva'
 import React, {useState,useEffect} from 'react'
 import {Vertex,Edge} from './Classes'
-import {BFS,DFS,Dijkstra,isEulerian} from './Algorithms'
+import {BFS,DFS,Dijkstra,isEulerian,BellmanFord} from './Algorithms'
 import drawGrid from './drawgrid'
 import {Actions,help} from './Actions'
 import {Info, Gear} from './Icons'
-import {Visualize,VisualizeDijkstra} from './Visualize'
+import {Visualize,VisualizeDijkstra,VisualizeBellmanFord} from './Visualize'
 import EdgeModal from './Modal'
 function App() {
     const [stage, setStage] = useState()
@@ -64,7 +64,7 @@ function App() {
         }
     }, [drag])
     const [edgeStart, setEdgeStart] = useState(false)
-    const [dijkstraStart, setDijkstraStart] = useState(false)
+    const [shortestPathInit, setShortestPathInit] = useState(false)
 
     const [op, setOp] = useState("vertex")
 
@@ -143,11 +143,18 @@ function App() {
         to = vertices.find(vertex => vertex.x === coords.x2 && vertex.y === coords.y2)
         const e = new Edge(from, to, weight, isDirected)
         setEdges((prevEdges) => [...prevEdges, e])
+        e.draw(stage, layer)
         if (!isDirected) {
             const n = new Edge(to, from, weight, isDirected)
             setEdges((prevEdges) => [...prevEdges, n])
         }
-        e.draw(stage, layer)
+        else {
+            const filtered = edges.filter((edge)=>edge.from === to && edge.to === from)
+            if(filtered.length>0){
+                filtered[0].curve()
+                e.curve(true)
+            }
+        }
     }
     const handleDelete = (vertex) => {
         const e = edges.filter(element => element.from.index == vertex.index || element.to.index == vertex.index) // edges to delete
@@ -174,7 +181,7 @@ function App() {
             //check if clicked on a vertex
             if (Math.sqrt((x - vertex.x) ** 2 + (y - vertex.y) ** 2) < 20) { // 20 is the radius of the circle
                 selected.unselect()
-                if ((op === "edge" || op === "Dijkstra") && vertex.index != selected.index && selected.index === -1) {
+                if ((op === "edge" || op === "Dijkstra" || op === "Bellman Ford") && vertex.index != selected.index && selected.index === -1) {
                     setSelected(vertex)
                     vertex.select("#2155CD")
                 } else {
@@ -211,26 +218,63 @@ function App() {
                 }
                 else if (op === "Dijkstra") {
                     setEdgeStart(false)
-                    if(!dijkstraStart){
+                    if(!shortestPathInit){
                       setInfo("Select a vertex to find shortest path to")
-                      setDijkstraStart(true)
+                      setShortestPathInit(true)
                     }
                     else{
-                      setDijkstraStart(false)
+                        setShortestPathInit(false)
                       const res = Dijkstra(graph, selected.index, vertex.index)
-                      VisualizeDijkstra(vertices,res.result,res.dist)
-                      if(res.spt[vertex.index]===null){
-                        setInfo("No paths found from "+selected.index.toString()+" to "+vertex.index.toString())
+                      if(res===0){
+                        setInfo("Graph contains negative weights")
                       }
-                      
                       else{
-                        let i = vertex.index
-                        let path = [vertex.index]
-                        while(res.spt[i]!==null){
-                          path.unshift(res.spt[i])
-                          i = res.spt[i]
+                        VisualizeDijkstra(vertices,res.result,res.dist)
+                        if(res.spt[vertex.index]===null){
+                            setInfo("No paths found from "+selected.index.toString()+" to "+vertex.index.toString())
                         }
-                        setInfo("Shorest path found : "+path.toString().replaceAll(","," => "))
+                        
+                        else{
+                            let i = vertex.index
+                            let path = [vertex.index]
+                            while(res.spt[i]!==null){
+                            path.unshift(res.spt[i])
+                            i = res.spt[i]
+                            }
+                            setInfo("Shorest path found : "+path.toString().replaceAll(","," => "))
+                        }
+                      }
+                    }
+                }
+                else if (op === "Bellman Ford") {
+                    setEdgeStart(false)
+                    if(!shortestPathInit){
+                      setInfo("Select a vertex to find shortest path to")
+                      setShortestPathInit(true)
+                    }
+                    else{
+                      setShortestPathInit(false)
+                      const res = BellmanFord(graph, edges, selected.index, vertex.index)
+                      if(res===0){
+                        setInfo("Graph is not directed")
+                      }
+                      else if(res===1){
+                        setInfo("Graph contains negative cycles")
+                      }
+                      else{
+                        if(res.result[vertex.index].from===null){
+                            setInfo("No paths found from "+selected.index.toString()+" to "+vertex.index.toString())
+                            VisualizeBellmanFord(vertices,edges,res.result,[],false)
+                        }
+                        else{
+                            let path = []
+                            res.spt.forEach((i)=>{
+                            path.unshift(i)
+                            })
+                            path.unshift(selected.index)
+                            setInfo("Shorest path found : "+path.toString().replaceAll(","," => "))
+                            VisualizeBellmanFord(vertices,edges,res.result,path,true)
+                        }
                       }
                     }
                 }
@@ -248,6 +292,8 @@ function App() {
         }
     }
     const handleOps = (e) => {
+        edges.forEach((edge)=>{edge.unselect()})
+        vertices.forEach((v) => {v.destroyInfo()})
         setDrag(false)
         if (e.target.value === "drag") {
             setDrag(true)
@@ -257,11 +303,6 @@ function App() {
             if(edge.arrow!==null){
                 edge.arrow.on('click',()=>{edge.destroy();setGraph({});setEdges(edges.filter(e=>e!=edge))})
             }
-          });
-        }
-        if(e.target.value !== "Dijkstra"){
-          vertices.forEach((v) => {
-            v.destroyInfo()
           });
         }
         setOp(e.target.value)
@@ -290,7 +331,7 @@ function App() {
     <EdgeModal show={showModal} hide={()=>setShowModal(false)} directed={()=>{setShowModal(false);drawLine(edge,true);setWeight(null)}} undirected={()=>{setShowModal(false);drawLine(edge,false);setWeight(null)}} handleWeight={handleWeight}/>
     </div>
     <p className="alert alert-success" style={{visibility:info===""?'hidden':'visible'}} id="info"><Info/> {info}</p>
-    <div id="container" style={{height:height,width:width,backgroundColor:"white"}} onClick={op!=="drag" ? handleClick : null}/>
+    <div id="container" style={{height:height,width:width,backgroundColor:"white",zIndex:"1",position:"absolute"}} onClick={op!=="drag" ? handleClick : null}/>
     </div>
     </div>
     );

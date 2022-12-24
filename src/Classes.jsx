@@ -116,17 +116,13 @@ class Edge{
         const p = this.arrow.points()
         this.tooltip = new Konva.Label({
         x: p.length==4 ? (p[0]+p[2])/2 : p[2],
-        y: p.length==4 ? (p[1]+p[3])/2 : p[3],
-        opacity: 0.75,
+        y: p.length==4 ? (p[1]+p[3]-40)/2 : p[3]-40,
+        opacity: 1,
         });
         this.tooltip.add(
         new Konva.Tag({
           fill: 'black',
-          pointerDirection: 'down',
-          pointerWidth: 10,
-          pointerHeight: 10,
           lineJoin: 'round',
-          shadowColor: 'black',
           shadowBlur: 10,
           shadowOffsetX: 10,
           shadowOffsetY: 10,
@@ -144,6 +140,14 @@ class Edge{
       }
       stage.add(layer);
       return this.points
+    }
+    select(color){
+      this.arrow.stroke(color)
+      this.arrow.fill(color)
+    }
+    unselect(){
+      this.arrow.stroke("#36AE7C")
+      this.arrow.fill("#36AE7C")
     }
   //calculate where does an edge starts and ends relative to the position of vertices
   calculatePoints(from,to){
@@ -173,6 +177,13 @@ class Edge{
           }
       }
       return [fromx, fromy, tox, toy]
+  }
+  curve(neg=false){
+    const p = this.arrow.points()
+    const c = neg ? {x1:p[0],y1:p[1]-20,x2:(p[0]+p[2])/2,y2:(p[1]+40+p[3]+40)/2,x3:p[2],y3:p[3]} : {x1:p[0],y1:p[1]-20,x2:(p[0]+p[2])/2,y2:(p[1]-40+p[3]-40)/2,x3:p[2],y3:p[3]}
+    this.arrow.points([c.x1,c.y1,c.x2,c.y2,c.x3,c.y3])
+    this.arrow.tension(1)
+    this.arrow.pointerAtEnding(true)
   }
   destroy(){
     if(this.arrow!=null){

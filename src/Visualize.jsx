@@ -48,7 +48,7 @@ const VisualizeDijkstra = (vertices,result,dist) => {
 					if(d==1e7){
 						d = "∞"
 					}
-					vertex.info("Distance from root: "+d)
+					vertex.info("Distance from source: "+d)
 				}
 			})
 			vertex = vertices.filter(e=>e.index==result[i])
@@ -70,4 +70,26 @@ const VisualizeDijkstra = (vertices,result,dist) => {
 	}
 	vis()
 }
-export {Visualize,VisualizeDijkstra}
+const VisualizeBellmanFord = (vertices,edges,result,path,pathFound) => {
+	vertices.forEach((vertex)=>{
+		if(result[vertex.index]!==undefined){
+			vertex.destroyInfo()
+			let d = result[vertex.index].distance.toString()
+			if(d==1e7){
+				d = "∞"
+			}
+			vertex.info("Distance from source: "+d)
+		}
+	})
+	if(pathFound){
+		path.forEach((vertex)=>{
+			let edgeToSelect = edges.filter(e=>e.to.index===vertex && e.from.index === result[vertex].from)
+			edgeToSelect = edgeToSelect[0]
+			if(edgeToSelect!==undefined){
+				console.log(edgeToSelect)
+				edgeToSelect.select("#EB5353")
+			}
+		})
+	}
+}
+export {Visualize,VisualizeDijkstra,VisualizeBellmanFord}

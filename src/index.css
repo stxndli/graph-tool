@@ -1,3 +1,7 @@
+body{
+  position:relative;
+  z-index: 2;
+}
 .main{
   margin-left:75px;
   margin-right:2em;
@@ -13,7 +17,4 @@ h1{
 label {
   margin-bottom: 10px;
 	margin-right: 1em;
-}
-.edgeop{
-  margin: 1em
 }

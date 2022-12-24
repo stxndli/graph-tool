@@ -1,7 +1,7 @@
 import {Vertex} from './Classes'
-const BFS = (graph, start)=>{
+const BFS = (graph, src)=>{
 	let result = []
-	let s = start
+	let s = src
 	let visited = {...graph}
 	for(const v in visited){
 		visited[v] = false
@@ -32,13 +32,13 @@ const DFSUtil = (graph, v, visited)=>{
 	})}
 
 }
-const DFS = (graph, start)=>{
+const DFS = (graph, src)=>{
 	let visited = []
-	DFSUtil(graph, start, visited)
+	DFSUtil(graph, src, visited)
 	return visited
 }
 
-const Dijkstra = (graph, start, end)=>{
+const Dijkstra = (graph, src)=>{
 	function minDist(q){
 		let m = 1e7
 		let node = q[0]
@@ -60,14 +60,17 @@ const Dijkstra = (graph, start, end)=>{
 		nodes.push(v)
 	}
 	let distState = []
-	dist[start] = 0
+	dist[src] = 0
 	distState.push({...dist})
-	result.push(start)
+	result.push(src)
 	while(nodes.length>0){
 		const index = minDist(nodes)
 		const min = nodes[index]
 		nodes.splice(index,1)
 		graph[min].forEach((neighbour)=>{
+			if(neighbour.weight < 0){
+				return 0 // graph contains negative weights
+			}
 			result.push(neighbour.index)
 			let weight = 1
 			if(neighbour.weight!==null){
@@ -83,6 +86,59 @@ const Dijkstra = (graph, start, end)=>{
 		})
 	}
 	return {result:result,dist:distState,spt:optimalPath}
+}
+const BellmanFord = (graph, edges, src, dest)=>{
+	// code 0: not directed graph
+	// code 1: graph contains negative cycles
+	const V = Object.keys(graph).length
+	let optimalPath = []
+	let result = {}
+	for(const v in graph){
+		result[v] = {distance:1e7, from: null}
+	}
+	result[src].distance = 0
+	result[src].from = null
+	// edge relaxation
+	for (let i = 0; i < V - 1; i++){
+        edges.forEach((edge)=>{
+			if(!edge.isDirected){
+				return 0
+			}
+			let weight
+			if(edge.weight){
+				weight = edge.weight
+			}
+			else{
+				weight = 1 // assume weight = 1
+			}
+            if ((result[edge.from.index].distance + weight) < result[edge.to.index].distance){
+				result[edge.to.index].distance = result[edge.from.index].distance + weight
+				result[edge.to.index].from = edge.from.index
+			}
+                
+        })
+    }
+	// check for negative cycles
+	edges.forEach((edge)=>{
+		let weight
+			if(edge.weight){
+				weight = edge.weight
+			}
+			else{
+				weight = 1 // assume weight = 1
+			}
+        if ((result[edge.from.index].distance + weight) < result[edge.to.index].distance){
+			return 1
+		}
+    })
+
+	// rebuild shortest path
+	let tmp = dest
+	while(tmp!==src && tmp!==null){
+		optimalPath.push(tmp)
+		tmp = result[tmp].from
+	}
+	return {result:result,spt:optimalPath}
 }
 const isConnected = (graph)=>{
 	let V = Object.keys(graph).length
@@ -120,4 +176,4 @@ const isEulerian = (graph) => {
 
 	return (odd==2)? "Graph is semi Eulerian" : "Graph is Eulerian";
 }
-export {BFS, DFS, Dijkstra, isEulerian}
+export {BFS, DFS, Dijkstra, isEulerian, BellmanFord}

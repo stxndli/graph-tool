@@ -6,7 +6,8 @@ const help = {
 	"vertex":"Click on canvas to create a vertex",
 	"DFS":"Select a starting vertex to traverse the graph using DFS algorithm",
 	"BFS":"Select a starting vertex to traverse the graph using BFS algorithm",
-	"Dijkstra":"Select a starting vertex"
+	"Dijkstra":"Select a starting vertex",
+	"Bellman Ford":"Select a starting vertex"
 }
 const Actions = (props)=>{
 	let cnt = 0
@@ -20,7 +21,8 @@ const Actions = (props)=>{
 		0:{value:"DFS",inner:"Depth First Search",color:"success", button:<Plus/>},
 		1:{value:"BFS",inner:"Breadth First Search",color:"success", button:<Plus/>},
 		2:{value:"Dijkstra",inner:"Dijkstra algorithm",color:"success", button:<Plus/>},
-		3:{value:"Eulerian",inner:"Eulerian graph",color:"success", button:<Plus/>}
+		3:{value:"Bellman Ford",inner:"Bellman Ford Algorithm",color:"success", button:<Plus/>},
+		4:{value:"Eulerian",inner:"Eulerian graph",color:"success", button:<Plus/>}
 	}
 	const inputs = []
 	const dropdown = []
@@ -31,9 +33,12 @@ const Actions = (props)=>{
       	  <label data-bs-toggle="tooltip" data-bs-placement="top" title={actions[i].inner} className={"btn btn-outline-"+actions[i].color} htmlFor={actions[i].value}>{actions[i].button}</label>  
     	</li>
 		)
+	}
+
+	for(let i=0;i<Object.keys(algs).length;i++){
 		dropdown.push(
 			<li className="dropdown-item" key={i}><input type="radio" className="btn-check" name="btnradio" id={"buttonradio"+(i+1).toString()} autoComplete="off" value={algs[i].value} onChange={props.onChange}/>
-      		<label className={"btn btn-outline-"+algs[i].color} htmlFor={"buttonradio"+(i+1).toString()}>{algs[i].inner}</label></li>
+			  <label className={"btn btn-outline-"+algs[i].color} style={{zIndex:"50"}} htmlFor={"buttonradio"+(i+1).toString()}>{algs[i].inner}</label></li>
 		)
 	}
 	
