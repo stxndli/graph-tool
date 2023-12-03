@@ -169,7 +169,7 @@ const isEulerian = (graph) => {
   return odd == 2 ? "Graph is semi Eulerian" : "Graph is Eulerian";
 };
 
-const ArticulationPoints = (graph) => {
+const findArticulationPointsBak = (graph) => {
   if (!isConnected(graph)) return -1;
   const ap = [];
   for (const v in graph) {
@@ -187,4 +187,42 @@ const ArticulationPoints = (graph) => {
   }
   return ap;
 };
-export { BFS, DFS, Dijkstra, isEulerian, BellmanFord, ArticulationPoints };
+
+function findArticulationPoints(g) {
+  const graph = { ...g };
+  const discovery = { timeOfNode: {}, dfsOrder: 0 };
+  const low = {};
+  const bridges = [];
+
+  for (const v in graph) {
+    if (discovery.timeOfNode[v] == undefined)
+      dfsBridges(graph, v, null, discovery, low, bridges);
+  }
+  return bridges;
+}
+
+function dfsBridges(graph, start, parent, discovery, low, bridges) {
+  discovery.timeOfNode[start] = discovery.dfsOrder++;
+  low[start] = discovery.timeOfNode[start];
+
+  graph[start].forEach((adjNodeObject) => {
+    const adjNode = adjNodeObject.index;
+
+    if (adjNode == parent) return;
+
+    // if it is a forward edge
+    if (discovery.timeOfNode[adjNode] == undefined) {
+      dfsBridges(graph, adjNode, start, discovery, low, bridges);
+      low[start] = Math.min(low[start], low[adjNode]);
+
+      if (discovery.timeOfNode[start] < low[adjNode] && parent !== null) {
+        bridges.push(start);
+      }
+    } else {
+      // backward edge
+      low[start] = Math.min(discovery.timeOfNode[adjNode], low[start]);
+    }
+  });
+}
+
+export { BFS, DFS, Dijkstra, isEulerian, BellmanFord, findArticulationPoints };

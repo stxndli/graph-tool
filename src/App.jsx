@@ -7,7 +7,7 @@ import {
   Dijkstra,
   isEulerian,
   BellmanFord,
-  ArticulationPoints,
+  findArticulationPoints,
 } from "./Algorithms";
 import drawGrid from "./drawgrid";
 import { Actions, help } from "./Actions";
@@ -65,6 +65,7 @@ function App() {
       });
     });
     setGraph(g);
+    console.log(g);
   }, [vertices, edges]);
   useEffect(() => {
     if (drag) {
@@ -354,7 +355,7 @@ function App() {
       const res = isEulerian(graph);
       setInfo(res);
     } else if (e.target.value === "AP") {
-      const ap = ArticulationPoints(graph);
+      const ap = findArticulationPoints(graph);
       if (ap === -1) {
         setInfo("Graph is not connected");
       } else if (ap.length === 0) {
