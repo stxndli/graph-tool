@@ -224,5 +224,214 @@ function dfsBridges(graph, start, parent, discovery, low, bridges) {
     }
   });
 }
+const graphToMatrix = (graph) => {
+  const strVertices = Object.keys(graph);
+  const vertices = strVertices.map((v) => parseInt(v));
+  const matrix = [];
 
-export { BFS, DFS, Dijkstra, isEulerian, BellmanFord, findArticulationPoints };
+  // Initialize the matrix with zeros
+  for (let i = 0; i < vertices.length; i++) {
+    matrix[i] = Array(vertices.length).fill(0);
+  }
+
+  // Populate the matrix with edge weights
+  for (let i = 0; i < vertices.length; i++) {
+    const adjNodes = graph[vertices[i]];
+    for (const adjNode of adjNodes) {
+      const j = vertices.indexOf(adjNode.index);
+      matrix[i][j] = adjNode.weight;
+    }
+  }
+  console.log("GRAPH TO MATRIX: ", matrix);
+  return matrix;
+};
+const TSPExhaustive = (graph, s, vertex) => {
+  // store minimum weight
+  // Hamiltonian Cycle.
+  let min_path = Number.MAX_VALUE;
+  var nodes = [];
+  var oldMinPath = min_path;
+  do {
+    // store current Path weight(cost)
+    let current_pathweight = 0;
+
+    // compute current path weight
+    let k = s;
+
+    for (let i = 0; i < vertex.length; i++) {
+      current_pathweight += graph[k][vertex[i]];
+      k = vertex[i];
+    }
+    current_pathweight += graph[k][s];
+    oldMinPath = min_path;
+
+    // update minimum
+    min_path = Math.min(min_path, current_pathweight);
+    if (min_path < oldMinPath) {
+      nodes = [...vertex];
+    }
+  } while (findNextPermutation(vertex));
+  return { min_path, nodes };
+};
+
+// Function to swap the data
+// present in the left and right indices
+const swap = (data, left, right) => {
+  // Swap the data
+  let temp = data[left];
+  data[left] = data[right];
+  data[right] = temp;
+
+  // Return the updated array
+  return data;
+};
+
+// Function to reverse the sub-array
+// starting from left to the right
+// both inclusive
+const reverse = (data, left, right) => {
+  // Reverse the sub-array
+  while (left < right) {
+    let temp = data[left];
+    data[left++] = data[right];
+    data[right--] = temp;
+  }
+
+  // Return the updated array
+  return data;
+};
+
+// Function to find the next permutation
+// of the given integer array
+const findNextPermutation = (data) => {
+  // If the given dataset is empty
+  // or contains only one element
+  // next_permutation is not possible
+  if (data.length <= 1) {
+    return false;
+  }
+  let last = data.length - 2;
+
+  // find the longest non-increasing
+  // suffix and find the pivot
+  while (last >= 0) {
+    if (data[last] < data[last + 1]) {
+      break;
+    }
+    last--;
+  }
+
+  // If there is no increasing pair
+  // there is no higher order permutation
+  if (last < 0) {
+    return false;
+  }
+  let nextGreater = data.length - 1;
+
+  // Find the rightmost successor
+  // to the pivot
+  for (let i = data.length - 1; i > last; i--) {
+    if (data[i] > data[last]) {
+      nextGreater = i;
+      break;
+    }
+  }
+
+  // Swap the successor and
+  // the pivot
+  data = swap(data, nextGreater, last);
+
+  // Reverse the suffix
+  data = reverse(data, last + 1, data.length - 1);
+
+  // Return true as the
+  // next_permutation is done
+  return true;
+};
+
+// TSP BY BACKTRACKING
+function TSPBackTrack(graph, start, n) {
+  var ans = { value: Number.MAX_VALUE };
+  // Boolean array to check if a node
+  // has been visited or not
+  var v = Array(n).fill(false);
+  // Mark 0th node as visited
+  v[start] = true;
+  var t0 = performance.now();
+  TSPBackTrackUtil(graph, start, n, 1, 0, ans, v);
+  var t1 = performance.now();
+  return { t0, t1, res: ans.value };
+}
+function TSPBackTrackUtil(graph, currPos, n, count, cost, ans, v) {
+  // If last node is reached and it has a link
+  // to the starting node i.e the source then
+  // keep the minimum value out of the total cost
+  // of traversal and "ans"
+  // Finally return to check for more possible values
+  if (count == n && graph[currPos][0]) {
+    ans.value = Math.min(ans.value, cost + graph[currPos][0]);
+    return;
+  }
+
+  // BACKTRACKING STEP
+  // Loop to traverse the adjacency list
+  // of currPos node and increasing the count
+  // by 1 and cost by graph[currPos][i] value
+  for (var i = 0; i < n; i++) {
+    if (!v[i] && graph[currPos][i]) {
+      // Mark as visited
+      v[i] = true;
+      TSPBackTrackUtil(
+        graph,
+        i,
+        n,
+        count + 1,
+        cost + graph[currPos][i],
+        ans,
+        v
+      );
+
+      // Mark ith node as unvisited
+      v[i] = false;
+    }
+  }
+}
+
+function TSPNearestNeighbour(graph, start, list) {
+  var visited = [];
+  visited.push(0);
+  var result = 0;
+  let index = start;
+  var oldIndex = 0;
+  var filteredlist = [];
+  var value = 0;
+  while (true) {
+    filteredlist = list.filter((item) => item !== index);
+    list = [...filteredlist];
+    oldIndex = index;
+    value = graph[index][list[0]];
+    for (var i = 1; i < graph[oldIndex].length; i++) {
+      if (graph[oldIndex][i] <= value && !visited.includes(i) && i != index) {
+        value = graph[oldIndex][i];
+        index = i;
+      }
+    }
+    if (oldIndex == index) break;
+    visited.push(index);
+    result += value;
+  }
+  result += graph[index][0];
+  return result;
+}
+export {
+  BFS,
+  DFS,
+  Dijkstra,
+  isEulerian,
+  BellmanFord,
+  findArticulationPoints,
+  TSPExhaustive,
+  TSPBackTrack,
+  TSPNearestNeighbour,
+  graphToMatrix,
+};

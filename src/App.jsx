@@ -8,6 +8,10 @@ import {
   isEulerian,
   BellmanFord,
   findArticulationPoints,
+  TSPExhaustive,
+  TSPBackTrack,
+  TSPNearestNeighbour,
+  graphToMatrix,
 } from "./Algorithms";
 import drawGrid from "./drawgrid";
 import { Actions, help } from "./Actions";
@@ -38,7 +42,7 @@ function App() {
   const [vertexID, setVertexID] = useState(0);
   const [vertices, setVertices] = useState([]);
   const [edges, setEdges] = useState([]);
-  const [weight, setWeight] = useState(null);
+  const [weight, setWeight] = useState(0);
   const [graph, setGraph] = useState({});
   const [drag, setDrag] = useState(false);
   const [info, setInfo] = useState(help["vertex"]);
@@ -236,8 +240,11 @@ function App() {
             setEdge(e);
             setEdgeStart(false);
             setShowModal(true);
+            // const w = Math.floor(Math.random() * 20);
+            // setWeight(w);
+            // drawLine(edge, false, w);
+            // setWeight(null);
           }
-          //drawLine(vertex.x, vertex.y)
         } else if (op === "BFS") {
           const res = BFS(graph, vertex.index);
           Visualize(vertices, res);
@@ -311,6 +318,62 @@ function App() {
                 VisualizeBellmanFord(vertices, edges, res.result, path, true);
               }
             }
+          }
+        } else if (op === "TSP") {
+          const m = graphToMatrix(graph);
+          let vertexArr = [];
+          for (let i = 0; i < Object.keys(graph).length; i++) {
+            if (i !== parseInt(vertex.index)) {
+              vertexArr.push(i);
+            }
+          }
+          var t0 = performance.now();
+          const res = TSPExhaustive(m, parseInt(vertex.index), vertexArr);
+          var t1 = performance.now();
+
+          const n = Object.keys(graph).length;
+          const res1 = TSPBackTrack(m, parseInt(vertex.index), n);
+
+          var list = [];
+          for (var j = 0; j < Object.keys(graph).length; j++) list[j] = j;
+          var t2 = performance.now();
+          const res2 = TSPNearestNeighbour(m, parseInt(vertex.index), list);
+          var t3 = performance.now();
+          setInfo(
+            `TSP by bruteforce: ${res.min_path} time: ${(t1 - t0).toFixed(
+              5
+            )} ms` +
+              ` Backtrack: ${res1.res} Time: ${(res1.t1 - res1.t0).toFixed(
+                5
+              )} ms` +
+              ` nearest neighbour ${res2} time: ${(t3 - t2).toFixed(5)} ms`
+          );
+          // color cycle
+          let startNode = vertex.index;
+          let currentNode = vertex.index;
+          for (let i = 0; i < res.nodes.length; i++) {
+            const nextNode = res.nodes[i];
+            let edgeToSelect = edges.filter(
+              (e) =>
+                (e.to.index === nextNode && e.from.index === currentNode) ||
+                (e.to.index === currentNode && e.from.index === nextNode)
+            );
+            if (edgeToSelect[0] !== undefined) {
+              edgeToSelect[0].select("#EB5353");
+            } else {
+              edgeToSelect[1].select("#EB5353");
+            }
+            currentNode = nextNode;
+          }
+          let edgeToSelect = edges.filter(
+            (e) =>
+              (e.to.index === startNode && e.from.index === currentNode) ||
+              (e.to.index === currentNode && e.from.index === startNode)
+          );
+          if (edgeToSelect[0] !== undefined) {
+            edgeToSelect[0].select("#EB5353");
+          } else {
+            edgeToSelect[1].select("#EB5353");
           }
         }
         draw = false;

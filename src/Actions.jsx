@@ -8,6 +8,7 @@ const help = {
   BFS: "Select a starting vertex to traverse the graph using BFS algorithm",
   Dijkstra: "Select a starting vertex",
   "Bellman Ford": "Select a starting vertex",
+  TSP: "Select an vertex to start from",
 };
 const Actions = (props) => {
   let cnt = 0;
@@ -51,6 +52,12 @@ const Actions = (props) => {
     5: {
       value: "AP",
       inner: "Articulation Points",
+      color: "success",
+      button: <Plus />,
+    },
+    6: {
+      value: "TSP",
+      inner: "Travelling Salesman Problem",
       color: "success",
       button: <Plus />,
     },

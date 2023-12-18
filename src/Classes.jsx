@@ -148,6 +148,9 @@ class Edge {
     return this.points;
   }
   select(color) {
+    if (!this.arrow) {
+      return;
+    }
     this.arrow.stroke(color);
     this.arrow.fill(color);
   }
